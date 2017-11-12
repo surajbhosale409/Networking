@@ -1,0 +1,95 @@
+Roll No: 16205
+
+
+POBLEM :  We have to transfer sequence of bytes [data] from device 'A' to device 'B', We should ensure that                sequence of bytes [data] should reach device 'B' same as its sent.[data recieved should be correct one]
+
+
+Assumptions:
+          Assume we have sequence of bytes totalling of size 'x' bytes to be sent from 'A' to 'B'.
+
+          We should divide the data in fixed sized parts of let's say '2' bytes, so it will be easier to send
+          and ensure data being sent->recieved is correct one, i.e. if data part is incorrect one we will be 
+          resending only that part of data instead of whole data again.
+          Now in mechanism for ensuring data accuracy I will have a fixed key and my algorithm same amongst
+          all devices which will generate a code for that particular data part.
+
+          Let's consider
+          Data = 10101110 01010001 00001111 11110000   [4KB]
+          Data Part[1]= 10101110 01010001
+          Data Part[2]= 00001111 11110000
+          Fixed Key= 1001
+
+          Now I will apply algorithm given below. For that I will take four bits from the data part
+          [bit no 1, bit no 5, bit no 12, bit no 16]
+          i.e.
+
+
+          Bit No        1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
+
+          Data Part[1]  1   0   1   0   1   1   1   0   0   1   0   1   0   0   0   1
+                        *               *                           *               *
+
+          Algorithm: Algorithm is simply EX-OR the four bits from data part with four bits of fixed Key
+
+          Data Bits : 1 1 1 1
+          Ex-OR       
+          Fixed Key:  1 0 0 1
+          Code:       0 1 1 0
+
+          Now I've got code generated from the data
+
+          Now I will have a extra 3 bit fixed data:  101 [this will be known to all devices]
+          I will add this 101 to start of generated code to form header
+
+          So header:  101 0110
+
+          Now I will send this Header 5 times to device 'B'
+          If device 'B' gets first three bits same i.e. 101
+          then I will take that last four bits from those correct headers out of 5.
+          Let's Assume a case:
+
+          'A' Sent      101 0110 5 times
+
+          'B' Recieved  011 0111   here as fixed 3 bits are not 101 this will be discarded
+                        101 1010   matches 101 so 1010 will be taken in consideration for while
+                        101 0110   matches 101 so 0110 will be taken in consideration for while
+                        101 0010   matches 101 so 0010 will be taken in consideration for while
+                        101 0110   matches 101 so 0110 will be taken in consideration for while
+
+                        Now 'B' Got 1010 0110 0010 0110
+                        Out of which 0110 has greater frequency than 1010 and 0010
+
+                        So 0110 will be stored as code for incoming data
+                        and a acknowledgment will be sent to device 'A' for sending data
+          code:0110
+
+          Now 'A' will send the data part[1] with fixed bits 101 and will wait 20secs[assumption]
+          for acknowledgment from device 'B'. otherwise it will send data with 101 again.
+
+          Device 'A' sends:      101 10101110 01010001
+
+          If device 'B' recieves first fixed 3 bits incorrect, it will not send any acknowledgement.
+          hence 'A' Will be timed out and send data again.
+
+          If device 'B' recieves first fixed 3 bits correct, it will apply algorithm as follows:
+          
+          code:0110
+          fixed key:1001
+          Data part[1](recieved)= 10101110 01010001
+          same bits i.e. 1,5,12,16 will be taken from data
+          
+          Data bits:  1 1 1 1
+          Ex-OR  
+          code:       0 1 1 0
+                      1 0 0 1
+
+         i.e. we got the fixed key so the data is correct and 'B' will send acknowledgement to get next
+         data part from 'A'
+         if we dont get the fixed key above then 'B' will not send any acknowledgment and 'A' will be timed
+         out and send data part again.
+
+
+
+
+
+1
